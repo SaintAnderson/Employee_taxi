@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+use App\Models\Driver;
 use App\Models\Employee;
 use App\Models\Car;
 use Illuminate\Http\Request;
@@ -17,7 +18,7 @@ class CarController extends Controller
         $allowedCategories = json_decode($employee->allowed_comfort_categories);
 
         // Найдите все автомобили, которые не забронированы на запланированное время
-        $availableCars = Car::where('comfort_category', $allowedCategories)
+        $availableCars = Car::whereIn('comfort_category', $allowedCategories)
             ->whereDoesntHave('bookings', function($query) use ($startTime, $endTime) {
                 $query->where(function($query) use ($startTime, $endTime) {
                     $query->where('start_time', '<', $endTime)
@@ -25,7 +26,11 @@ class CarController extends Controller
                 });
             })
             ->get();
-
+        // Добавляем поле Drivername к каждому объекту автомобиля
+        $availableCars = $availableCars->map(function ($car) {
+            $car->Drivername = $car->driver ? $car->driver->name : 'Без водителя';
+            return $car;
+        });
         return response()->json($availableCars);
     }
 }
